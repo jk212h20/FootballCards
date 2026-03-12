@@ -1,0 +1,314 @@
+/* Reset & Base */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #1a1a2e;
+  color: #e0e0e0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px;
+  gap: 16px;
+}
+
+/* Scoreboard */
+#scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 12px 32px;
+  width: 100%;
+  max-width: 820px;
+  justify-content: space-between;
+}
+.score-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.team-name {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #8899aa;
+}
+.team-score {
+  font-size: 48px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+}
+#score-p1 .team-score { color: #4fc3f7; }
+#score-p2 .team-score { color: #ef5350; }
+#game-info {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#down-info {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ffd54f;
+}
+#yard-info {
+  font-size: 14px;
+  color: #aaa;
+}
+#possession-arrow {
+  font-size: 18px;
+}
+
+/* Field */
+#field-container {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid #2e7d32;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+#field { display: block; }
+
+/* Cards Area */
+#cards-area {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  justify-content: center;
+}
+.card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.card {
+  width: 100px;
+  height: 140px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  transition: all 0.4s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+.card.face-down {
+  background: linear-gradient(135deg, #1565c0, #0d47a1);
+  color: #ffffff44;
+  font-size: 48px;
+  border: 2px solid #1976d2;
+}
+.card.face-up {
+  background: #fff;
+  border: 2px solid #ccc;
+  flex-direction: column;
+  gap: 4px;
+}
+.card.face-up .card-rank {
+  font-size: 28px;
+  line-height: 1;
+}
+.card.face-up .card-suit {
+  font-size: 32px;
+  line-height: 1;
+}
+.card.face-up.red { color: #d32f2f; }
+.card.face-up.black { color: #212121; }
+.cards-remaining {
+  font-size: 12px;
+  color: #888;
+}
+#vs-label {
+  font-size: 24px;
+  font-weight: 800;
+  color: #555;
+}
+
+/* Action Button */
+#action-area { text-align: center; }
+#action-btn {
+  padding: 14px 48px;
+  font-size: 18px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(46,125,50,0.4);
+}
+#action-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(46,125,50,0.5); }
+#action-btn:active { transform: translateY(0); }
+#action-btn:disabled {
+  background: #444;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Play Log */
+#play-log {
+  width: 100%;
+  max-width: 820px;
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 12px 16px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+#play-log h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #667;
+  margin-bottom: 8px;
+}
+#log-entries {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.log-entry {
+  font-size: 13px;
+  color: #bbb;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #1a1a2e;
+}
+.log-entry.gain { border-left: 3px solid #43a047; }
+.log-entry.no-gain { border-left: 3px solid #ffa000; }
+.log-entry.turnover { border-left: 3px solid #e53935; }
+.log-entry.touchdown { border-left: 3px solid #ffd54f; color: #ffd54f; font-weight: 700; }
+.log-entry.info { border-left: 3px solid #4fc3f7; }
+
+/* Modals */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal.hidden { display: none; }
+.modal-content {
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 16px;
+  padding: 32px;
+  text-align: center;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+.modal-content h2 {
+  font-size: 28px;
+  margin-bottom: 16px;
+  color: #ffd54f;
+}
+.modal-content p {
+  margin-bottom: 16px;
+  color: #bbb;
+}
+.modal-content button {
+  padding: 12px 36px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #43a047, #2e7d32);
+  color: #fff;
+  margin-top: 12px;
+}
+.modal-content button:disabled {
+  background: #444;
+  cursor: not-allowed;
+}
+#coin {
+  font-size: 80px;
+  margin: 20px 0;
+  transition: transform 0.5s;
+}
+#coin.flipping {
+  animation: coinSpin 1s ease-out;
+}
+@keyframes coinSpin {
+  0% { transform: rotateY(0deg) scale(1); }
+  50% { transform: rotateY(900deg) scale(1.3); }
+  100% { transform: rotateY(1800deg) scale(1); }
+}
+
+/* Kickoff Hand Picker */
+.hand-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 12px 0;
+}
+.hand-picker .mini-card {
+  width: 52px;
+  height: 72px;
+  border-radius: 6px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+  border: 2px solid #ccc;
+  transition: all 0.15s;
+  gap: 2px;
+}
+.hand-picker .mini-card:hover { transform: translateY(-4px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+.hand-picker .mini-card.selected {
+  border-color: #ffd54f;
+  box-shadow: 0 0 12px rgba(255,213,79,0.5);
+  transform: translateY(-6px);
+}
+.hand-picker .mini-card.disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+.hand-picker .mini-card.red { color: #d32f2f; }
+.hand-picker .mini-card.black { color: #212121; }
+.mini-card .mc-rank { font-size: 16px; line-height: 1; }
+.mini-card .mc-suit { font-size: 18px; line-height: 1; }
+
+#kickoff-selected {
+  font-size: 16px;
+  color: #ccc;
+  margin: 8px 0;
+}
+#kickoff-total { color: #ffd54f; font-weight: 700; }
+
+/* Card flip animation */
+.card.flip-in {
+  animation: flipIn 0.4s ease-out;
+}
+@keyframes flipIn {
+  0% { transform: rotateY(90deg); }
+  100% { transform: rotateY(0deg); }
+}
+
+/* Highlight active player card slot */
+.card-slot.active-offense .card.face-down {
+  border-color: #ffd54f;
+  box-shadow: 0 0 16px rgba(255,213,79,0.3);
+}

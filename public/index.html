@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Football Cards</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Lobby Screen -->
+  <div id="lobby">
+    <h1>🏈 Football Cards</h1>
+    <p class="lobby-desc">A two-player card battle on the gridiron</p>
+    <button id="find-game-btn" onclick="findGame()">Find Game</button>
+    <p id="lobby-status" class="hidden"></p>
+  </div>
+
+  <!-- Game Screen (hidden until matched) -->
+  <div id="game-screen" class="hidden">
+
+    <!-- Scoreboard -->
+    <div id="scoreboard">
+      <div class="score-team" id="score-p1">
+        <span class="team-name" id="p1-label">Player 1</span>
+        <span class="team-score" id="p1-score">0</span>
+      </div>
+      <div id="game-info">
+        <div id="down-info">1st &amp; 10</div>
+        <div id="yard-info">Ball on 50</div>
+        <div id="possession-arrow">🏈 ➡️</div>
+      </div>
+      <div class="score-team" id="score-p2">
+        <span class="team-name" id="p2-label">Player 2</span>
+        <span class="team-score" id="p2-score">0</span>
+      </div>
+    </div>
+
+    <!-- Football Field -->
+    <div id="field-container">
+      <canvas id="field" width="800" height="320"></canvas>
+    </div>
+
+    <!-- Cards Area -->
+    <div id="cards-area">
+      <div id="p1-card-slot" class="card-slot">
+        <div class="card face-down" id="p1-card">🂠</div>
+        <div class="cards-remaining">Cards: <span id="p1-cards-left">26</span></div>
+      </div>
+      <div id="vs-label">VS</div>
+      <div id="p2-card-slot" class="card-slot">
+        <div class="card face-down" id="p2-card">🂠</div>
+        <div class="cards-remaining">Cards: <span id="p2-cards-left">26</span></div>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <div id="action-area">
+      <button id="action-btn" disabled>Waiting...</button>
+      <p id="action-status"></p>
+    </div>
+
+    <!-- Play Log -->
+    <div id="play-log">
+      <h3>Play Log</h3>
+      <div id="log-entries"></div>
+    </div>
+  </div>
+
+  <!-- Kickoff Modal -->
+  <div id="kickoff-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="kickoff-title">Kickoff</h2>
+      <p id="kickoff-instructions">Pick 3 cards of different ranks.</p>
+      <div id="kickoff-hand" class="hand-picker"></div>
+      <div id="kickoff-selected">Selected: <span id="kickoff-selected-cards"></span> = <span id="kickoff-total">0</span> yards</div>
+      <button id="kickoff-confirm" onclick="confirmKickoff()" disabled>Confirm (pick 3)</button>
+    </div>
+  </div>
+
+  <!-- Waiting Modal (during opponent's kickoff) -->
+  <div id="waiting-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>⏳</h2>
+      <p id="waiting-message">Waiting for opponent...</p>
+    </div>
+  </div>
+
+  <!-- Coin Flip Modal -->
+  <div id="coin-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Coin Flip!</h2>
+      <div id="coin">🪙</div>
+      <p id="coin-result"></p>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="gameover-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 id="gameover-title">Game Over!</h2>
+      <p id="gameover-text"></p>
+      <button onclick="location.reload()">Play Again</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script>
+</body>
+</html>
