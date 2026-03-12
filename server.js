@@ -111,6 +111,7 @@ function broadcastState(game) {
         phase: game.phase,
         cardsLeft: [game.hands[0].length, game.hands[1].length],
         myCardsLeft: game.hands[i].length,
+        myHand: game.hands[i],
       });
     }
   }
@@ -261,11 +262,14 @@ function setFirstDownMarker(game) {
 }
 
 // --- Normal Play ---
-function handlePlayCard(game, pIdx) {
+function handlePlayCard(game, pIdx, cardIndex) {
   if (game.phase !== 'play') return;
-  if (game.playSubmitted[pIdx]) return;
+  if (game.playSubmitted[pIdx] !== false) return; // false = not yet submitted
 
-  game.playSubmitted[pIdx] = true;
+  // Validate card index
+  if (typeof cardIndex !== 'number' || cardIndex < 0 || cardIndex >= game.hands[pIdx].length) return;
+
+  game.playSubmitted[pIdx] = cardIndex; // store the chosen card index (can be 0)
 
   // Tell opponent this player is ready
   const oppSock = game.sockets[1 - pIdx];
@@ -274,7 +278,7 @@ function handlePlayCard(game, pIdx) {
   }
 
   // If both ready, resolve
-  if (game.playSubmitted[0] && game.playSubmitted[1]) {
+  if (game.playSubmitted[0] !== false && game.playSubmitted[1] !== false) {
     resolvePlay(game);
   }
 }
@@ -285,8 +289,15 @@ function resolvePlay(game) {
     return;
   }
 
-  const p1Card = game.hands[0].pop();
-  const p2Card = game.hands[1].pop();
+  // Pull the chosen cards (remove higher index first to avoid shifting)
+  const idx0 = game.playSubmitted[0];
+  const idx1 = game.playSubmitted[1];
+  const p1Card = game.hands[0][idx0];
+  const p2Card = game.hands[1][idx1];
+
+  // Remove from hands (safe — each player's hand is independent)
+  game.hands[0].splice(idx0, 1);
+  game.hands[1].splice(idx1, 1);
 
   const offense = game.possession;
   const offCard = offense === 0 ? p1Card : p2Card;
@@ -478,11 +489,11 @@ io.on('connection', (socket) => {
     handleKickoffSelect(game, pIdx, data.cardIndices);
   });
 
-  socket.on('play-card', () => {
+  socket.on('play-card', (data) => {
     const game = getGame(socket.id);
     if (!game) return;
     const pIdx = playerIndex(game, socket.id);
-    handlePlayCard(game, pIdx);
+    handlePlayCard(game, pIdx, data && data.cardIndex);
   });
 
   socket.on('disconnect', () => {

@@ -190,30 +190,66 @@ function confirmKickoff() {
 }
 
 // --- Normal Play ---
+let myHand = []; // current hand from server
+
 socket.on('phase-change', (data) => {
   if (data.phase === 'play') {
     $('waiting-modal').classList.add('hidden');
     $('kickoff-modal').classList.add('hidden');
-    enablePlayButton();
+    enableHandSelection();
   }
 });
 
-function enablePlayButton() {
+function enableHandSelection() {
   iSubmittedPlay = false;
-  const btn = $('action-btn');
-  btn.disabled = false;
-  btn.textContent = 'PLAY CARD';
-  btn.onclick = playCard;
-  $('action-status').textContent = '';
+  $('action-status').textContent = 'Pick a card to play';
+  renderMyHand();
 }
 
-function playCard() {
+function renderMyHand() {
+  const container = $('my-hand');
+  container.innerHTML = '';
+
+  if (iSubmittedPlay) return; // don't render if already submitted
+
+  // Sort hand by value then suit for consistent display
+  const sorted = myHand.map((c, i) => ({ ...c, idx: i }));
+  sorted.sort((a, b) => cardValue(a) - cardValue(b) || SUITS.indexOf(a.suit) - SUITS.indexOf(b.suit));
+
+  $('hand-count').textContent = `(${myHand.length})`;
+
+  for (const card of sorted) {
+    const div = document.createElement('div');
+    div.className = `mini-card ${cardColor(card)}`;
+    div.innerHTML = `<span class="mc-rank">${card.rank}</span><span class="mc-suit">${card.suit}</span>`;
+    div.onclick = () => playCard(card.idx);
+    container.appendChild(div);
+  }
+}
+
+function playCard(cardIndex) {
   if (iSubmittedPlay) return;
   iSubmittedPlay = true;
-  $('action-btn').disabled = true;
-  $('action-btn').textContent = 'Waiting for opponent...';
-  $('action-status').textContent = 'Card locked in!';
-  socket.emit('play-card');
+
+  // Highlight the selected card and disable others
+  const container = $('my-hand');
+  const allCards = container.querySelectorAll('.mini-card');
+  allCards.forEach(el => el.classList.add('disabled'));
+
+  // Find and highlight the selected one
+  const selectedCard = myHand[cardIndex];
+  allCards.forEach(el => {
+    const rank = el.querySelector('.mc-rank').textContent;
+    const suit = el.querySelector('.mc-suit').textContent;
+    if (rank === selectedCard.rank && suit === selectedCard.suit && !el.classList.contains('played')) {
+      el.classList.remove('disabled');
+      el.classList.add('selected');
+      el.classList.add('played');
+    }
+  });
+
+  $('action-status').textContent = `Played ${cardLabel(selectedCard)} — waiting for opponent...`;
+  socket.emit('play-card', { cardIndex });
 
   // Show face-down cards
   setCardFaceDown('p1-card');
@@ -233,14 +269,16 @@ socket.on('play-resolved', () => {
   setTimeout(() => {
     setCardFaceDown('p1-card');
     setCardFaceDown('p2-card');
-    enablePlayButton();
+    enableHandSelection();
   }, 1200);
 });
 
 socket.on('touchdown', () => {
   // Modals handled by kickoff-pick / kickoff-wait
-  $('action-btn').disabled = true;
-  $('action-btn').textContent = 'TOUCHDOWN!';
+  // Disable hand during touchdown sequence
+  iSubmittedPlay = true;
+  $('my-hand').innerHTML = '';
+  $('action-status').textContent = '🏈 TOUCHDOWN!';
 });
 
 // --- Game State Updates ---
@@ -250,6 +288,12 @@ socket.on('game-state', (state) => {
   $('p2-score').textContent = state.scores[1];
   $('p1-cards-left').textContent = state.cardsLeft[0];
   $('p2-cards-left').textContent = state.cardsLeft[1];
+
+  // Update local hand from server
+  if (state.myHand) {
+    myHand = state.myHand;
+    $('hand-count').textContent = `(${myHand.length})`;
+  }
 
   const offName = `Player ${state.possession + 1}`;
   const dir = state.possession === 0 ? '➡️' : '⬅️';
@@ -279,7 +323,9 @@ socket.on('game-over', (data) => {
   $('gameover-title').textContent = title;
   $('gameover-text').textContent = text;
   $('gameover-modal').classList.remove('hidden');
-  $('action-btn').disabled = true;
+  // Disable hand on game over
+  iSubmittedPlay = true;
+  $('my-hand').innerHTML = '';
 });
 
 // --- Log ---

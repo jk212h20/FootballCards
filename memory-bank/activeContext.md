@@ -33,7 +33,8 @@ Old local-only files still in root (game.js, index.html, style.css) — can be r
 ## What Works
 - Socket.io matchmaking (queue-based, first two matched)
 - All game mechanics server-side (anti-cheat)
-- Coin flip, kickoff card picker, normal play, interceptions, fumbles
+- Coin flip, kickoff card picker
+- **Card selection during play** — players see their full hand as clickable mini-cards, pick one to play (server validates index)
 - Downs, first downs, turnover on downs, touchdowns (7pts), win at 21
 - Disconnect = forfeit
 - Play log synced to both players
