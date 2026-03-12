@@ -79,8 +79,11 @@ socket.on('coin-flip', (data) => {
   }, 3000);
 });
 
-// --- Kickoff ---
+// --- Kickoff (simultaneous) ---
+let kickoffLocked = false;
+
 socket.on('kickoff-pick', (data) => {
+  kickoffLocked = false;
   $('waiting-modal').classList.add('hidden');
   $('kickoff-modal').classList.remove('hidden');
 
@@ -89,16 +92,24 @@ socket.on('kickoff-pick', (data) => {
     $('kickoff-instructions').textContent = 'Pick 3 cards of different ranks for your kick distance.';
   } else {
     $('kickoff-title').textContent = 'Return the Kick!';
-    $('kickoff-instructions').textContent = `Kick was ${data.kickTotal} yards. Pick 3 cards of different ranks for your return.`;
+    $('kickoff-instructions').textContent = 'Pick 3 cards of different ranks for your return distance.';
   }
+
+  // Reset opponent status
+  $('kickoff-opponent-status').textContent = '';
 
   renderKickoffHand(data.hand);
 });
 
 socket.on('kickoff-wait', (data) => {
-  $('kickoff-modal').classList.add('hidden');
-  $('waiting-modal').classList.remove('hidden');
-  $('waiting-message').textContent = data.message;
+  // Don't hide the kickoff modal — just show waiting overlay within it
+  kickoffLocked = true;
+  $('kickoff-confirm').disabled = true;
+  $('kickoff-confirm').textContent = 'Waiting for opponent...';
+});
+
+socket.on('opponent-kickoff-ready', () => {
+  $('kickoff-opponent-status').textContent = '✓ Opponent has locked in cards';
 });
 
 socket.on('kickoff-result', () => {

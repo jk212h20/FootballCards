@@ -134,34 +134,32 @@ function doCoinFlip(game) {
   setTimeout(() => beginKickoff(game), 1500);
 }
 
-// --- Kickoff ---
+// --- Kickoff (simultaneous) ---
 function beginKickoff(game) {
-  game.phase = 'kickoff-kicker';
-  game.kickoffSubmitted = [null, null];
+  game.phase = 'kickoff';
+  game.kickoffSubmitted = [null, null]; // stores { cardIndices, cards, total } per player
 
   const kicker = game.kickoffWho;
-  const kickerSock = game.sockets[kicker];
-
-  // Send kicker their hand to pick from
-  if (kickerSock && kickerSock.connected) {
-    kickerSock.emit('kickoff-pick', {
-      role: 'kicker',
-      hand: game.hands[kicker],
-      kickTotal: null,
-    });
-  }
-
-  // Tell returner to wait
   const returner = 1 - kicker;
-  const returnerSock = game.sockets[returner];
-  if (returnerSock && returnerSock.connected) {
-    returnerSock.emit('kickoff-wait', { role: 'returner', message: 'Opponent is selecting kickoff cards...' });
+
+  // Both players pick simultaneously
+  for (let i = 0; i < 2; i++) {
+    const sock = game.sockets[i];
+    if (sock && sock.connected) {
+      sock.emit('kickoff-pick', {
+        role: i === kicker ? 'kicker' : 'returner',
+        hand: game.hands[i],
+      });
+    }
   }
 
   broadcastState(game);
 }
 
 function handleKickoffSelect(game, pIdx, cardIndices) {
+  if (game.phase !== 'kickoff') return;
+  if (game.kickoffSubmitted[pIdx]) return; // already submitted
+
   // Validate: 3 cards, different ranks, valid indices
   if (cardIndices.length !== 3) return;
   const hand = game.hands[pIdx];
@@ -170,86 +168,87 @@ function handleKickoffSelect(game, pIdx, cardIndices) {
   const ranks = cards.map(c => c.rank);
   if (new Set(ranks).size !== 3) return;
 
-  if (game.phase === 'kickoff-kicker' && pIdx === game.kickoffWho) {
-    // Remove cards from hand (sort descending to avoid index shift)
-    const sorted = [...cardIndices].sort((a, b) => b - a);
-    for (const i of sorted) game.hands[pIdx].splice(i, 1);
+  const total = cards.reduce((s, c) => s + cardValue(c), 0);
+  game.kickoffSubmitted[pIdx] = { cardIndices, cards, total };
 
-    const kickTotal = cards.reduce((s, c) => s + cardValue(c), 0);
-    game.kickoffKickTotal = kickTotal;
-    game.phase = 'kickoff-returner';
-
-    broadcastLog(game, `Player ${pIdx + 1} kicks for ${kickTotal} yards.`, 'info');
-
-    // Now returner picks
-    const returner = 1 - pIdx;
-    const returnerSock = game.sockets[returner];
-    if (returnerSock && returnerSock.connected) {
-      returnerSock.emit('kickoff-pick', {
-        role: 'returner',
-        hand: game.hands[returner],
-        kickTotal,
-      });
-    }
-
-    // Tell kicker to wait
-    const kickerSock = game.sockets[pIdx];
-    if (kickerSock && kickerSock.connected) {
-      kickerSock.emit('kickoff-wait', { role: 'kicker', message: `You kicked ${kickTotal} yards. Waiting for return...` });
-    }
-
-  } else if (game.phase === 'kickoff-returner' && pIdx !== game.kickoffWho) {
-    // Remove cards
-    const sorted = [...cardIndices].sort((a, b) => b - a);
-    for (const i of sorted) game.hands[pIdx].splice(i, 1);
-
-    const returnTotal = cards.reduce((s, c) => s + cardValue(c), 0);
-    const kickTotal = game.kickoffKickTotal;
-    const fumble = (kickTotal === returnTotal);
-
-    // Calculate ball position
-    let ballLand, ballAfterReturn;
-    if (game.kickoffWho === 0) {
-      ballLand = Math.min(100, Math.max(0, 100 - kickTotal));
-      ballAfterReturn = Math.min(100, Math.max(0, ballLand + returnTotal));
-    } else {
-      ballLand = Math.min(100, Math.max(0, kickTotal));
-      ballAfterReturn = Math.min(100, Math.max(0, ballLand - returnTotal));
-    }
-
-    if (fumble) {
-      game.possession = game.kickoffWho;
-      game.ballYard = ballLand;
-      broadcastLog(game, `Player ${pIdx + 1} returns for ${returnTotal} yards — FUMBLE! Totals match (${kickTotal})! Kicking team recovers!`, 'turnover');
-    } else {
-      game.ballYard = ballAfterReturn;
-      broadcastLog(game, `Player ${pIdx + 1} returns for ${returnTotal} yards. Ball at ${yardLineText(game.ballYard)}.`, 'info');
-    }
-
-    io.to(game.id).emit('kickoff-result', {
-      kickTotal,
-      returnTotal,
-      fumble,
-      ballYard: game.ballYard,
-      possession: game.possession,
-    });
-
-    // Check return TD
-    if ((game.possession === 0 && game.ballYard >= 100) || (game.possession === 1 && game.ballYard <= 0)) {
-      setTimeout(() => scoreTouchdown(game), 800);
-      return;
-    }
-
-    // Start play
-    game.down = 1;
-    game.yardsToGo = 10;
-    setFirstDownMarker(game);
-    game.phase = 'play';
-    game.playSubmitted = [false, false];
-    broadcastState(game);
-
-    io.to(game.id).emit('phase-change', { phase: 'play' });
+  // Notify opponent
+  const oppSock = game.sockets[1 - pIdx];
+  if (oppSock && oppSock.connected) {
+    oppSock.emit('opponent-kickoff-ready');
   }
+  // Tell submitter to wait
+  const mySock = game.sockets[pIdx];
+  if (mySock && mySock.connected) {
+    mySock.emit('kickoff-wait', { message: 'Cards locked in! Waiting for opponent...' });
+  }
+
+  // If both submitted, resolve
+  if (game.kickoffSubmitted[0] && game.kickoffSubmitted[1]) {
+    resolveKickoff(game);
+  }
+}
+
+function resolveKickoff(game) {
+  const kicker = game.kickoffWho;
+  const returner = 1 - kicker;
+  const kickData = game.kickoffSubmitted[kicker];
+  const returnData = game.kickoffSubmitted[returner];
+
+  // Remove cards from both hands (sort descending to avoid index shift)
+  for (let i = 0; i < 2; i++) {
+    const data = game.kickoffSubmitted[i];
+    const sorted = [...data.cardIndices].sort((a, b) => b - a);
+    for (const idx of sorted) game.hands[i].splice(idx, 1);
+  }
+
+  const kickTotal = kickData.total;
+  const returnTotal = returnData.total;
+  const fumble = (kickTotal === returnTotal);
+
+  broadcastLog(game, `Player ${kicker + 1} kicks for ${kickTotal} yards.`, 'info');
+
+  // Calculate ball position
+  let ballLand, ballAfterReturn;
+  if (kicker === 0) {
+    ballLand = Math.min(100, Math.max(0, 100 - kickTotal));
+    ballAfterReturn = Math.min(100, Math.max(0, ballLand + returnTotal));
+  } else {
+    ballLand = Math.min(100, Math.max(0, kickTotal));
+    ballAfterReturn = Math.min(100, Math.max(0, ballLand - returnTotal));
+  }
+
+  if (fumble) {
+    game.possession = kicker;
+    game.ballYard = ballLand;
+    broadcastLog(game, `Player ${returner + 1} returns for ${returnTotal} yards — FUMBLE! Totals match (${kickTotal})! Kicking team recovers!`, 'turnover');
+  } else {
+    game.ballYard = ballAfterReturn;
+    broadcastLog(game, `Player ${returner + 1} returns for ${returnTotal} yards. Ball at ${yardLineText(game.ballYard)}.`, 'info');
+  }
+
+  io.to(game.id).emit('kickoff-result', {
+    kickTotal,
+    returnTotal,
+    fumble,
+    ballYard: game.ballYard,
+    possession: game.possession,
+  });
+
+  // Check return TD
+  if ((game.possession === 0 && game.ballYard >= 100) || (game.possession === 1 && game.ballYard <= 0)) {
+    setTimeout(() => scoreTouchdown(game), 800);
+    return;
+  }
+
+  // Start play
+  game.down = 1;
+  game.yardsToGo = 10;
+  setFirstDownMarker(game);
+  game.phase = 'play';
+  game.playSubmitted = [false, false];
+  broadcastState(game);
+
+  io.to(game.id).emit('phase-change', { phase: 'play' });
 }
 
 function setFirstDownMarker(game) {

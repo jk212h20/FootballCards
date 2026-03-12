@@ -347,6 +347,12 @@ body {
   margin: 8px 0;
 }
 #kickoff-total { color: #ffd54f; font-weight: 700; }
+#kickoff-opponent-status {
+  font-size: 13px;
+  color: #43a047;
+  min-height: 18px;
+  margin: 4px 0;
+}
 
 /* Card flip animation */
 .card.flip-in {
